@@ -1,10 +1,12 @@
 import Koa from "koa";
-import { router } from "./routes.js";
+import errorHandler from "./middleware/errorHandler.js";
+import router from "./api/todos/todos.routes.js";
 
 const app = new Koa();
 
 const port = 3000;
 
+app.use(errorHandler);
 app.use(router.routes());
 
 app.listen(port, () => {
