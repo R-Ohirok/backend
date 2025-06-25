@@ -1,6 +1,12 @@
 import type { Context } from 'koa';
 
-const todos = [
+type ToDoType = {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+}
+
+const todos: ToDoType[] = [
   {
     id: "1",
     title: "test 1",
