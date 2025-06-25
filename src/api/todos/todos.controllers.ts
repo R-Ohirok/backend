@@ -3,34 +3,34 @@ import type { Context } from 'koa';
 type ToDoType = {
   id: string;
   title: string;
-  isCompleted: boolean;
+  is_completed: boolean;
 }
 
 const todos: ToDoType[] = [
   {
     id: "1",
     title: "test 1",
-    isCompleted: false,
+    is_completed: false,
   },
   {
     id: "2",
     title: "test 2",
-    isCompleted: true,
+    is_completed: true,
   },
   {
     id: "3",
     title: "test 3",
-    isCompleted: false,
+    is_completed: false,
   },
   {
     id: "4",
     title: "test 4",
-    isCompleted: true,
+    is_completed: true,
   },
   {
     id: "5",
     title: "test 5",
-    isCompleted: false,
+    is_completed: false,
   },
 ];
 
