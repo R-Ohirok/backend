@@ -55,6 +55,21 @@ export const postTodo = async (ctx: Context) => {
 
   todos.push(newTodo);
 
-  ctx.status = 201;
-  ctx.body = newTodo;
+  ctx.status = 200;
+};
+
+export const deleteTodo = async (ctx:Context) => {
+  const idToDelete = ctx.params.id;
+
+  const index = todos.findIndex(todo => todo.id === idToDelete);
+
+  if (index === -1) {
+    ctx.status = 404;
+    ctx.body = { message: 'ToDo not found' };
+    return;
+  }
+
+  todos.splice(index, 1);
+
+  ctx.status = 200;
 };
