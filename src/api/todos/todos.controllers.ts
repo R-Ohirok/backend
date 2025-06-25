@@ -1,10 +1,11 @@
 import type { Context } from 'koa';
+import { z } from 'zod';
 
 type ToDoType = {
   id: string;
   title: string;
   is_completed: boolean;
-}
+};
 
 const todos: ToDoType[] = [
   {
@@ -34,25 +35,37 @@ const todos: ToDoType[] = [
   },
 ];
 
+const GetTodosQuerySchema = z.object({
+  page: z.string().optional().default('1'),
+  status: z.string().optional().default('All'),
+  title: z.string().optional().default(''),
+});
+
+const CreateToDoSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1),
+  is_completed: z.boolean(),
+});
+
 export const getTodos = async (ctx: Context) => {
-  const { page = '1', status = 'All', title = '' } = ctx.query;
-  
+  const queryValidation = GetTodosQuerySchema.safeParse(ctx.query);
+
+  // const { page, status, title } = queryValidation.data;
+
+  ctx.status = 200;
   ctx.body = todos;
 };
 
-export const postTodo = async (ctx: Context) => {
-  const { id, title, is_completed } = ctx.request.body as ToDoType;
+export const createTodo = async (ctx: Context) => {
+  const bodyValidation = CreateToDoSchema.safeParse(ctx.request.body);
 
-  if (
-    typeof id !== 'string' ||
-    typeof title !== 'string' ||
-    typeof is_completed !== 'boolean'
-  ) {
-    throw new Error('Invalid ToDo data');
+  if (!bodyValidation.success) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid ToDo data', errors: bodyValidation.error.format() };
+    return;
   }
 
-  const newTodo: ToDoType = { id, title, is_completed };
-
+  const newTodo = bodyValidation.data;
   todos.push(newTodo);
 
   ctx.status = 200;
