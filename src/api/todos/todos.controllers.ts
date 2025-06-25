@@ -39,3 +39,22 @@ export const getTodos = async (ctx: Context) => {
   
   ctx.body = todos;
 };
+
+export const postTodo = async (ctx: Context) => {
+  const { id, title, isCompleted } = ctx.request.body as ToDoType;
+
+  if (
+    typeof id !== 'string' ||
+    typeof title !== 'string' ||
+    typeof isCompleted !== 'boolean'
+  ) {
+    throw new Error('Invalid ToDo data');
+  }
+
+  const newTodo: ToDoType = { id, title, isCompleted };
+
+  todos.push(newTodo);
+
+  ctx.status = 201;
+  ctx.body = newTodo;
+};
