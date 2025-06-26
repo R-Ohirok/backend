@@ -44,8 +44,15 @@ export const createTodo = async (ctx: Context) => {
     return;
   }
 
-  const sql = 'INSERT INTO todos (id, title, is_completed) VALUES ($1, $2, $3) RETURNING *';
-  const { rows } = await client.query<ToDoType>(sql, [bodyValidation.data.id, bodyValidation.data.title, bodyValidation.data.is_completed]);
+  const { id, title, is_completed } = bodyValidation.data;
+
+  const { rows } = await client.query<ToDoType>(`
+    INSERT INTO todos
+    (id, title, is_completed)
+    VALUES ($1, $2, $3)
+    RETURNING *`,
+    [id, title, is_completed]
+  );
 
   ctx.status = 200;
   ctx.body = rows[0];
@@ -54,7 +61,12 @@ export const createTodo = async (ctx: Context) => {
 export const deleteTodo = async (ctx:Context) => {
   const idToDelete = ctx.params.id;
 
-  await client.query('DELETE FROM todos WHERE id = $1', [idToDelete]);
+  await client.query(`
+    DELETE 
+    FROM todos 
+    WHERE id = $1`,
+    [idToDelete]
+  );
 
   ctx.status = 200;
 };
