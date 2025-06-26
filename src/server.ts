@@ -3,7 +3,7 @@ import errorHandler from "./middleware/errorHandler.js";
 import router from "./api/todos/todos.routes.js";
 import cors from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
-import { client } from "./utils/dataBase.js";
+import client from "./config/dataBase.js";
 
 const app = new Koa();
 
@@ -18,3 +18,4 @@ app.use(router.routes());
 app.listen(port, () => {
   console.log(`🚀 Server is running on port http://localhost:${port}/`);
 });
+

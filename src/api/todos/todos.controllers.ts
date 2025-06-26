@@ -1,6 +1,6 @@
 import type { Context } from 'koa';
 import { z } from 'zod';
-import { client } from '../../utils/dataBase.js';
+import client from '../../config/dataBase.js';
 
 type ToDoType = {
   id: string;
