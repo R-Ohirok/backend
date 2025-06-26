@@ -1,39 +1,12 @@
 import type { Context } from 'koa';
 import { z } from 'zod';
+import { client } from '../../utils/dataBase.js';
 
 type ToDoType = {
   id: string;
   title: string;
   is_completed: boolean;
 };
-
-const todos: ToDoType[] = [
-  {
-    id: "1",
-    title: "test 1",
-    is_completed: false,
-  },
-  {
-    id: "2",
-    title: "test 2",
-    is_completed: true,
-  },
-  {
-    id: "3",
-    title: "test 3",
-    is_completed: false,
-  },
-  {
-    id: "4",
-    title: "test 4",
-    is_completed: true,
-  },
-  {
-    id: "5",
-    title: "test 5",
-    is_completed: false,
-  },
-];
 
 const GetTodosQuerySchema = z.object({
   page: z.string().optional().default('1'),
@@ -50,10 +23,16 @@ const CreateToDoSchema = z.object({
 export const getTodos = async (ctx: Context) => {
   const queryValidation = GetTodosQuerySchema.safeParse(ctx.query);
 
-  // const { page, status, title } = queryValidation.data;
 
+  const { rows } = await client.query(`
+    SELECT *
+    FROM todos
+  `);
+
+  // const { page, status, title } = queryValidation.data;
+  
   ctx.status = 200;
-  ctx.body = todos;
+  ctx.body = rows;
 };
 
 export const createTodo = async (ctx: Context) => {
@@ -65,24 +44,18 @@ export const createTodo = async (ctx: Context) => {
     return;
   }
 
-  const newTodo = bodyValidation.data;
-  todos.push(newTodo);
+  const sql = 'INSERT INTO todos (id, title, is_completed) VALUES ($1, $2, $3) RETURNING *';
+  const { rows } = await client.query<ToDoType>(sql, [bodyValidation.data.id, bodyValidation.data.title, bodyValidation.data.is_completed]);
 
   ctx.status = 200;
+  ctx.body = rows[0];
 };
 
 export const deleteTodo = async (ctx:Context) => {
   const idToDelete = ctx.params.id;
 
-  const index = todos.findIndex(todo => todo.id === idToDelete);
-
-  if (index === -1) {
-    ctx.status = 404;
-    ctx.body = { message: 'ToDo not found' };
-    return;
-  }
-
-  todos.splice(index, 1);
+  await client.query('DELETE FROM todos WHERE id = $1', [idToDelete]);
 
   ctx.status = 200;
 };
+
