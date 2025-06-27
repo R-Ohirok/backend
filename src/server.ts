@@ -3,12 +3,13 @@ import errorHandler from "./middleware/errorHandler.js";
 import router from "./api/todos/todos.routes.js";
 import cors from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
-import client from "./config/dataBase.js";
+import db from './config/dataBase.js';
+import { Model } from 'objection';
 
 const app = new Koa();
-
 const port = 3000;
-await client.connect();
+
+Model.knex(db);
 
 app.use(cors());
 app.use(bodyParser());
