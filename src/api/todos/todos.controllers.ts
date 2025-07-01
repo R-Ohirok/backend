@@ -56,10 +56,6 @@ export const getTodos = async (ctx: Context) => {
   const totalCount = await baseQuery.resultSize();
   const pagesCount = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  while (page > pagesCount && page > 1) {
-    page--;
-  }
-
   const todos = await baseQuery
     .limit(ITEMS_PER_PAGE)
     .offset((page - 1) * ITEMS_PER_PAGE)
@@ -68,7 +64,6 @@ export const getTodos = async (ctx: Context) => {
   ctx.status = 200;
   ctx.body = {
     pagesCount,
-    activePage: page,
     todos,
   };
 };
