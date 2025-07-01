@@ -21,6 +21,11 @@ const CreateToDoSchema = z.object({
   is_completed: z.boolean(),
 });
 
+const UpdateToDoSchema = z.object({
+  title: z.string().min(1).optional(),
+  is_completed: z.boolean().optional(),
+});
+
 const ITEMS_PER_PAGE = 5;
 
 export const getTodos = async (ctx: Context) => {
@@ -29,6 +34,7 @@ export const getTodos = async (ctx: Context) => {
   if (!parsed.success) {
     ctx.status = 400;
     ctx.body = { message: 'Invalid query', errors: parsed.error.format() };
+
     return;
   }
 
@@ -56,7 +62,8 @@ export const getTodos = async (ctx: Context) => {
 
   const todos = await baseQuery
     .limit(ITEMS_PER_PAGE)
-    .offset((page - 1) * ITEMS_PER_PAGE);
+    .offset((page - 1) * ITEMS_PER_PAGE)
+    .orderBy('id');;
 
   ctx.status = 200;
   ctx.body = {
@@ -65,12 +72,14 @@ export const getTodos = async (ctx: Context) => {
     todos,
   };
 };
+
 export const createTodo = async (ctx: Context) => {
   const parsed = CreateToDoSchema.safeParse(ctx.request.body);
 
   if (!parsed.success) {
     ctx.status = 400;
     ctx.body = { message: 'Invalid ToDo data', errors: parsed.error.format() };
+
     return;
   }
 
@@ -84,6 +93,36 @@ export const deleteTodo = async (ctx: Context) => {
   const id = ctx.params.id;
 
   await ToDo.query().deleteById(id);
+
+  ctx.status = 200;
+};
+
+export const updateTodo = async (ctx: Context) => {
+  const id = ctx.params.id;
+
+  const parsed = UpdateToDoSchema.safeParse(ctx.request.body);
+
+  if (!parsed.success) {
+    ctx.status = 400;
+    ctx.body = {
+      message: 'Invalid update data',
+      errors: parsed.error.format(),
+    };
+
+    return;
+  }
+
+  const updatedData = parsed.data;
+
+  const updatedTodo = await ToDo.query()
+    .patchAndFetchById(id, updatedData);
+
+  if (!updatedTodo) {
+    ctx.status = 404;
+    ctx.body = { message: 'ToDo not found' };
+
+    return;
+  }
 
   ctx.status = 200;
 };
