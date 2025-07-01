@@ -3,16 +3,37 @@ import { z } from 'zod';
 import ToDo from '../../config/models/ToDo.js';
 
 const GetTodosQuerySchema = z.object({
-  page: z
-    .string()
-    .optional()
-    .default('1')
-    .transform((val) => {
-      const parsed = Number(val);
-      return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-    }),
   status: z.string().optional().default('All'),
   title: z.string().optional().default(''),
+  limit: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') return Number(val);
+      return val;
+    },
+    z
+      .number({
+        invalid_type_error: 'Limit must be a number',
+      })
+      .int({ message: 'Limit must be an integer' })
+      .positive({ message: 'Limit must be greater than 0' })
+      .optional()
+      .default(5)
+  ),
+
+  offset: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') return Number(val);
+      return val;
+    },
+    z
+      .number({
+        invalid_type_error: 'Offset must be a number',
+      })
+      .int({ message: 'Offset must be an integer' })
+      .min(0, { message: 'Offset must be 0 or greater' })
+      .optional()
+      .default(0)
+  ),
 });
 
 const CreateToDoSchema = z.object({
@@ -26,8 +47,6 @@ const UpdateToDoSchema = z.object({
   is_completed: z.boolean().optional(),
 });
 
-const ITEMS_PER_PAGE = 5;
-
 export const getTodos = async (ctx: Context) => {
   const parsed = GetTodosQuerySchema.safeParse(ctx.query);
 
@@ -38,7 +57,7 @@ export const getTodos = async (ctx: Context) => {
     return;
   }
 
-  let { status, title, page = 1 } = parsed.data;
+  let { status, title, limit, offset } = parsed.data;
 
 
   let baseQuery = ToDo.query();
@@ -54,11 +73,11 @@ export const getTodos = async (ctx: Context) => {
   }
 
   const totalCount = await baseQuery.resultSize();
-  const pagesCount = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const pagesCount = Math.ceil(totalCount / limit);
 
   const todos = await baseQuery
-    .limit(ITEMS_PER_PAGE)
-    .offset((page - 1) * ITEMS_PER_PAGE)
+    .limit(limit)
+    .offset(offset)
     .orderBy('id');;
 
   ctx.status = 200;
