@@ -6,10 +6,7 @@ const GetTodosQuerySchema = z.object({
   status: z.string().optional().default('All'),
   title: z.string().optional().default(''),
   limit: z.preprocess(
-    (val) => {
-      if (typeof val === 'string') return Number(val);
-      return val;
-    },
+    (val) => Number(val),
     z
       .number({
         invalid_type_error: 'Limit must be a number',
@@ -21,10 +18,7 @@ const GetTodosQuerySchema = z.object({
   ),
 
   offset: z.preprocess(
-    (val) => {
-      if (typeof val === 'string') return Number(val);
-      return val;
-    },
+    (val) => Number(val),
     z
       .number({
         invalid_type_error: 'Offset must be a number',
