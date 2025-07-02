@@ -1,0 +1,1 @@
+To start the migration, run the command: npx knex migrate: latest

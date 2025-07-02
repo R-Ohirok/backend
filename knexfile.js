@@ -1,8 +1,7 @@
 import dotenv from 'dotenv';
-import { Knex } from 'knex';
 dotenv.config();
 
-const knexConfig: Knex.Config = {
+const knexConfig = {
   client: 'pg',
   connection: {
     user: process.env.DB_USER,
