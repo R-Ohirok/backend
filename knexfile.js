@@ -11,8 +11,11 @@ const knexConfig = {
     database: process.env.DB_NAME,
   },
   migrations: {
-    tableName: 'knex_migrations',
+    tableName: 'todos',
     directory: './migrations',
+  },
+  seeds: {
+    directory: './seeds',
   },
 };
 
