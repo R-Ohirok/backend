@@ -1,44 +1,39 @@
 import type { Context } from 'koa';
 import { z } from 'zod';
+import ToDo from '../../config/models/ToDo.js';
 
-type ToDoType = {
-  id: string;
-  title: string;
-  is_completed: boolean;
+enum ToDoStatus {
+  completed = 'Completed',
+  active = 'Active',
+  all = 'All'
 };
 
-const todos: ToDoType[] = [
-  {
-    id: "1",
-    title: "test 1",
-    is_completed: false,
-  },
-  {
-    id: "2",
-    title: "test 2",
-    is_completed: true,
-  },
-  {
-    id: "3",
-    title: "test 3",
-    is_completed: false,
-  },
-  {
-    id: "4",
-    title: "test 4",
-    is_completed: true,
-  },
-  {
-    id: "5",
-    title: "test 5",
-    is_completed: false,
-  },
-];
-
 const GetTodosQuerySchema = z.object({
-  page: z.string().optional().default('1'),
   status: z.string().optional().default('All'),
   title: z.string().optional().default(''),
+  limit: z.preprocess(
+    (val) => Number(val),
+    z
+      .number({
+        invalid_type_error: 'Limit must be a number',
+      })
+      .int({ message: 'Limit must be an integer' })
+      .positive({ message: 'Limit must be greater than 0' })
+      .optional()
+      .default(5)
+  ),
+
+  offset: z.preprocess(
+    (val) => Number(val),
+    z
+      .number({
+        invalid_type_error: 'Offset must be a number',
+      })
+      .int({ message: 'Offset must be an integer' })
+      .min(0, { message: 'Offset must be 0 or greater' })
+      .optional()
+      .default(0)
+  ),
 });
 
 const CreateToDoSchema = z.object({
@@ -47,42 +42,99 @@ const CreateToDoSchema = z.object({
   is_completed: z.boolean(),
 });
 
-export const getTodos = async (ctx: Context) => {
-  const queryValidation = GetTodosQuerySchema.safeParse(ctx.query);
+const UpdateToDoSchema = z.object({
+  title: z.string().min(1).optional(),
+  is_completed: z.boolean().optional(),
+});
 
-  // const { page, status, title } = queryValidation.data;
+export const getTodos = async (ctx: Context) => {
+  const parsed = GetTodosQuerySchema.safeParse(ctx.query);
+
+  if (!parsed.success) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid query', errors: parsed.error.format() };
+
+    return;
+  }
+
+  const { status, title, limit, offset } = parsed.data;
+
+
+  let baseQuery = ToDo.query();
+
+  if (status === ToDoStatus.completed) {
+    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.completed);
+  } else if (status === ToDoStatus.active) {
+    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.active);
+  }
+
+  if (title) {
+    baseQuery = baseQuery.where('title', 'ilike', `%${title}%`);
+  }
+
+  const totalCount = await baseQuery.resultSize();
+  const pagesCount = Math.ceil(totalCount / limit);
+
+  const todos = await baseQuery
+    .limit(limit)
+    .offset(offset)
+    .orderBy('id');;
 
   ctx.status = 200;
-  ctx.body = todos;
+  ctx.body = {
+    pagesCount,
+    todos,
+  };
 };
 
 export const createTodo = async (ctx: Context) => {
-  const bodyValidation = CreateToDoSchema.safeParse(ctx.request.body);
+  const parsed = CreateToDoSchema.safeParse(ctx.request.body);
 
-  if (!bodyValidation.success) {
+  if (!parsed.success) {
     ctx.status = 400;
-    ctx.body = { message: 'Invalid ToDo data', errors: bodyValidation.error.format() };
+    ctx.body = { message: 'Invalid ToDo data', errors: parsed.error.format() };
+
     return;
   }
 
-  const newTodo = bodyValidation.data;
-  todos.push(newTodo);
+  const todo = await ToDo.query().insert(parsed.data);
+
+  ctx.status = 200;
+  ctx.body = todo;
+};
+
+export const deleteTodo = async (ctx: Context) => {
+  const id = ctx.params.id;
+
+  await ToDo.query().deleteById(id);
 
   ctx.status = 200;
 };
 
-export const deleteTodo = async (ctx:Context) => {
-  const idToDelete = ctx.params.id;
+export const updateTodo = async (ctx: Context) => {
+  const id = ctx.params.id;
 
-  const index = todos.findIndex(todo => todo.id === idToDelete);
+  const parsed = UpdateToDoSchema.safeParse(ctx.request.body);
 
-  if (index === -1) {
-    ctx.status = 404;
-    ctx.body = { message: 'ToDo not found' };
+  if (!parsed.success) {
+    ctx.status = 400;
+    ctx.body = {
+      message: 'Invalid update data',
+      errors: parsed.error.format(),
+    };
+
     return;
   }
 
-  todos.splice(index, 1);
+  const updatedTodo = await ToDo.query()
+    .patchAndFetchById(id, parsed.data);
+
+  if (!updatedTodo) {
+    ctx.status = 404;
+    ctx.body = { message: 'ToDo not found' };
+
+    return;
+  }
 
   ctx.status = 200;
 };
