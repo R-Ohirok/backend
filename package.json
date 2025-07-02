@@ -23,7 +23,7 @@
     "koa-router": "^13.0.1",
     "nodemon": "^3.1.10",
     "objection": "^3.1.5",
-    "pg": "^8.16.2",
+    "pg": "^8.16.3",
     "save-dev": "^0.0.1-security",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
