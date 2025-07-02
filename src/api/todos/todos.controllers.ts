@@ -2,6 +2,12 @@ import type { Context } from 'koa';
 import { z } from 'zod';
 import ToDo from '../../config/models/ToDo.js';
 
+enum ToDoStatus {
+  completed = 'Completed',
+  active = 'Active',
+  all = 'All'
+};
+
 const GetTodosQuerySchema = z.object({
   status: z.string().optional().default('All'),
   title: z.string().optional().default(''),
@@ -51,15 +57,15 @@ export const getTodos = async (ctx: Context) => {
     return;
   }
 
-  let { status, title, limit, offset } = parsed.data;
+  const { status, title, limit, offset } = parsed.data;
 
 
   let baseQuery = ToDo.query();
 
-  if (status === 'Completed') {
-    baseQuery = baseQuery.where('is_completed', true);
-  } else if (status === 'Active') {
-    baseQuery = baseQuery.where('is_completed', false);
+  if (status === ToDoStatus.completed) {
+    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.completed);
+  } else if (status === ToDoStatus.active) {
+    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.active);
   }
 
   if (title) {
@@ -120,10 +126,8 @@ export const updateTodo = async (ctx: Context) => {
     return;
   }
 
-  const updatedData = parsed.data;
-
   const updatedTodo = await ToDo.query()
-    .patchAndFetchById(id, updatedData);
+    .patchAndFetchById(id, parsed.data);
 
   if (!updatedTodo) {
     ctx.status = 404;
