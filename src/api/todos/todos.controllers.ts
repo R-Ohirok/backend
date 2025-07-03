@@ -99,14 +99,17 @@ export const createTodo = async (ctx: Context) => {
 
   const todo = await ToDo.query().insert(parsed.data);
 
+  ctx.io.emit('todo-created', todo);
+
   ctx.status = 200;
-  ctx.body = todo;
 };
 
 export const deleteTodo = async (ctx: Context) => {
   const id = ctx.params.id;
 
   await ToDo.query().deleteById(id);
+
+  ctx.io.emit('todo-deleted', id);
 
   ctx.status = 200;
 };
