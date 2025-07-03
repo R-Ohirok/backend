@@ -63,9 +63,9 @@ export const getTodos = async (ctx: Context) => {
   let baseQuery = ToDo.query();
 
   if (status === ToDoStatus.completed) {
-    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.completed);
+    baseQuery = ToDo.query().where('is_completed', true);
   } else if (status === ToDoStatus.active) {
-    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.active);
+    baseQuery = ToDo.query().where('is_completed', false);
   }
 
   if (title) {
