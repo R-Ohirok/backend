@@ -136,5 +136,7 @@ export const updateTodo = async (ctx: Context) => {
     return;
   }
 
+  ctx.io.emit('todo-updated', updatedTodo);
+
   ctx.status = 200;
 };
