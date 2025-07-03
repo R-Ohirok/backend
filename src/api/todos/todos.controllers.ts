@@ -9,7 +9,7 @@ enum ToDoStatus {
 };
 
 const GetTodosQuerySchema = z.object({
-  status: z.string().optional().default('All'),
+  status: z.string().optional().default(''),
   title: z.string().optional().default(''),
   limit: z.preprocess(
     (val) => Number(val),
@@ -62,10 +62,8 @@ export const getTodos = async (ctx: Context) => {
 
   let baseQuery = ToDo.query();
 
-  if (status === ToDoStatus.completed) {
-    baseQuery = ToDo.query().where('is_completed', true);
-  } else if (status === ToDoStatus.active) {
-    baseQuery = ToDo.query().where('is_completed', false);
+  if (status) {
+    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.completed);
   }
 
   if (title) {
