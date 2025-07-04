@@ -3,6 +3,7 @@ import http from "http";
 import { Server } from 'socket.io';
 import errorHandler from "./middleware/errorHandler.js";
 import router from "./api/todos/todos.routes.js";
+import authRouter from './api/auth/auth.routes.js';
 import cors from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
 import db from './config/dataBase.js';
@@ -35,6 +36,7 @@ app.use(cors());
 app.use(bodyParser());
 app.use(errorHandler);
 app.use(router.routes());
+app.use(authRouter.routes());
 
 server.listen(port, () => {
   console.log(`🚀 Server is running on port http://localhost:${port}/`);
