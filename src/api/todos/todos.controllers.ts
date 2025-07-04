@@ -88,6 +88,7 @@ export const getTodos = async (ctx: Context) => {
 export const createTodo = async (ctx: Context) => {
   const parsed = CreateToDoSchema.safeParse(ctx.request.body);
 
+
   if (!parsed.success) {
     ctx.status = 400;
     ctx.body = { message: 'Invalid ToDo data', errors: parsed.error.format() };
