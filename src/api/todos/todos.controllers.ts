@@ -9,7 +9,7 @@ enum ToDoStatus {
 };
 
 const GetTodosQuerySchema = z.object({
-  status: z.string().optional().default('All'),
+  status: z.string().optional().default(''),
   title: z.string().optional().default(''),
   limit: z.preprocess(
     (val) => Number(val),
@@ -62,10 +62,8 @@ export const getTodos = async (ctx: Context) => {
 
   let baseQuery = ToDo.query();
 
-  if (status === ToDoStatus.completed) {
+  if (status) {
     baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.completed);
-  } else if (status === ToDoStatus.active) {
-    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.active);
   }
 
   if (title) {
@@ -99,14 +97,17 @@ export const createTodo = async (ctx: Context) => {
 
   const todo = await ToDo.query().insert(parsed.data);
 
+  ctx.io.emit('todo-created', todo);
+
   ctx.status = 200;
-  ctx.body = todo;
 };
 
 export const deleteTodo = async (ctx: Context) => {
   const id = ctx.params.id;
 
   await ToDo.query().deleteById(id);
+
+  ctx.io.emit('todo-deleted', id);
 
   ctx.status = 200;
 };
@@ -135,6 +136,8 @@ export const updateTodo = async (ctx: Context) => {
 
     return;
   }
+
+  ctx.io.emit('todo-updated', updatedTodo);
 
   ctx.status = 200;
 };
