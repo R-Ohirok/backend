@@ -2,6 +2,7 @@ import type { Context } from 'koa';
 import { z } from 'zod';
 import User from '../../config/models/User.js';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -44,7 +45,10 @@ export const register = async (ctx: Context) => {
     password: hashedPassword,
   });
 
+  const token = jwt.sign({ email }, process.env.JWT_SECRET as string, { expiresIn: '1d' });
+
   ctx.status = 200;
+  ctx.body = { token };
 };
 
 export const verifyEmail = async (ctx: Context) => {
@@ -101,5 +105,8 @@ export const login = async (ctx: Context) => {
     return;
   }
 
+  const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET as string, { expiresIn: '1d' });
+
   ctx.status = 200;
+  ctx.body = { token };
 };
