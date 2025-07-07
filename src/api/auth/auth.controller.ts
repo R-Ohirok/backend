@@ -8,9 +8,17 @@ const RegisterSchema = z.object({
   password: z.string().min(6),
 });
 
+const FindUserSchema = z.object({
+  email: z.string().email(),
+});
+
+const LoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
 export const register = async (ctx: Context) => {
   const parsed = RegisterSchema.safeParse(ctx.request.body);
-
 
   if (!parsed.success) {
     ctx.status = 400;
@@ -35,6 +43,63 @@ export const register = async (ctx: Context) => {
     email,
     password: hashedPassword,
   });
+
+  ctx.status = 200;
+};
+
+export const findUser = async (ctx: Context) => {
+  console.log('check');
+  const parsed = FindUserSchema.safeParse(ctx.request.body);
+
+  if (!parsed.success) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid email' };
+
+    return;
+  }
+
+  const { email } = parsed.data;
+
+  const user = await User.query().findOne({ email });
+
+  if (!user) {
+    ctx.status = 401;
+    ctx.body = { message: 'there is no user with this email in the database' };
+
+    return;
+  }
+
+  ctx.status = 200;
+}
+
+export const login = async (ctx: Context) => {
+  const parsed = LoginSchema.safeParse(ctx.request.body);
+
+  if (!parsed.success) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid data' };
+
+    return;
+  }
+
+  const { email, password } = parsed.data;
+
+  const user = await User.query().findOne({ email });
+
+  if (!user) {
+    ctx.status = 401;
+    ctx.body = { message: 'Invalid email or password' };
+
+    return;
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    ctx.status = 401;
+    ctx.body = { message: 'Invalid password' };
+    return;
+  }
 
   ctx.status = 200;
 };
