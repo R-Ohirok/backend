@@ -8,7 +8,7 @@ const RegisterSchema = z.object({
   password: z.string().min(6),
 });
 
-const FindUserSchema = z.object({
+const VerifyEmailSchema = z.object({
   email: z.string().email(),
 });
 
@@ -47,9 +47,9 @@ export const register = async (ctx: Context) => {
   ctx.status = 200;
 };
 
-export const findUser = async (ctx: Context) => {
+export const verifyEmail = async (ctx: Context) => {
   console.log('check');
-  const parsed = FindUserSchema.safeParse(ctx.request.body);
+  const parsed = VerifyEmailSchema.safeParse(ctx.request.body);
 
   if (!parsed.success) {
     ctx.status = 400;
