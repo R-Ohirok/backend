@@ -56,8 +56,12 @@ export const register = async (ctx: Context) => {
     maxAge: 12 * 60 * 60 * 1000,
   });
 
-  ctx.status = 200;
-  ctx.body = { accessToken };
+  const payloadBase64 = accessToken.split('.')[1];
+    const decodedPayload = JSON.parse(atob(payloadBase64));
+    const expiresAt = decodedPayload.exp;
+
+    ctx.status = 200;
+    ctx.body = { accessToken, expiresAt };
 };
 
 export const verifyEmail = async (ctx: Context) => {
@@ -123,11 +127,16 @@ export const login = async (ctx: Context) => {
     maxAge: 12 * 60 * 60 * 1000,
   });
 
-  ctx.status = 200;
-  ctx.body = { accessToken };
+  const payloadBase64 = accessToken.split('.')[1];
+    const decodedPayload = JSON.parse(atob(payloadBase64));
+    const expiresAt = decodedPayload.exp;
+
+    ctx.status = 200;
+    ctx.body = { accessToken, expiresAt };
 };
 
 export const refresh = async (ctx: Context) => {
+  console.log('refresh');
   const token = ctx.cookies.get('refreshToken');
 
   if (!token) {
@@ -139,7 +148,21 @@ export const refresh = async (ctx: Context) => {
   try {
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!);
     const accessToken = generateAccessToken({ payload });
-    ctx.body = { accessToken };
+    const refreshToken = generateRefreshToken({ payload });
+
+    ctx.cookies.set('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 12 * 60 * 60 * 1000,
+    });
+
+    const payloadBase64 = accessToken.split('.')[1];
+    const decodedPayload = JSON.parse(atob(payloadBase64));
+    const expiresAt = decodedPayload.exp;
+
+    ctx.status = 200;
+    ctx.body = { accessToken, expiresAt };
   } catch {
     ctx.status = 403;
     ctx.body = { message: 'Invalid refresh token' };
