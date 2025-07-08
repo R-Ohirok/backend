@@ -17,7 +17,7 @@ const authMiddleware = async (ctx: Context, next: Next) => {
     ctx.state.user = decoded;
     await next();
   } catch {
-    ctx.status = 403;
+    ctx.status = 401;
     ctx.body = { message: 'Invalid or expired token' };
   }
 };
