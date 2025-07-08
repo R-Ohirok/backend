@@ -142,6 +142,7 @@ export const logout = async (ctx: Context) => {
   if (!refreshToken) {
     ctx.status = 400;
     ctx.body = { message: 'Refresh token not found' };
+
     return;
   }
   
@@ -177,6 +178,7 @@ export const refresh = async (ctx: Context) => {
   if (!token) {
     ctx.status = 401;
     ctx.body = { message: 'No refresh token' };
+
     return;
   }
 
@@ -185,6 +187,7 @@ export const refresh = async (ctx: Context) => {
   if (isBlacklisted) {
     ctx.status = 403;
     ctx.body = { message: 'Refresh token is blacklisted' };
+    
     return;
   }
 
