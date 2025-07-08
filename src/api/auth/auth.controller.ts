@@ -4,6 +4,7 @@ import User from '../../config/models/User.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { generateAccessToken, generateRefreshToken } from './utils/generateToken.js';
+import TokenBlacklist from '../../config/models/TokenBlacklist.js';
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -135,8 +136,42 @@ export const login = async (ctx: Context) => {
     ctx.body = { accessToken, expiresAt };
 };
 
+export const logout = async (ctx: Context) => {
+  const refreshToken = ctx.cookies.get('refreshToken');
+  
+  if (!refreshToken) {
+    ctx.status = 400;
+    ctx.body = { message: 'Refresh token not found' };
+    return;
+  }
+  
+  try {
+    const payloadBase64 = refreshToken.split('.')[1];
+    const decodedPayload = JSON.parse(atob(payloadBase64));
+    const expiresAt = decodedPayload.exp;
+
+    await TokenBlacklist.query().insert({
+      token: refreshToken,
+      expires_at: expiresAt * 1000,
+    });
+    
+    ctx.cookies.set('refreshToken', '', {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 0,
+    });
+    
+
+    ctx.status = 200;
+  } catch (err) {
+    console.error('Logout error:', err);
+    ctx.status = 401;
+    ctx.body = { message: 'Invalid refresh token' };
+  }
+};
+
 export const refresh = async (ctx: Context) => {
-  console.log('refresh');
   const token = ctx.cookies.get('refreshToken');
 
   if (!token) {
@@ -145,10 +180,18 @@ export const refresh = async (ctx: Context) => {
     return;
   }
 
+  const isBlacklisted = !!(await TokenBlacklist.query().findOne({ token }));
+
+  if (isBlacklisted) {
+    ctx.status = 403;
+    ctx.body = { message: 'Refresh token is blacklisted' };
+    return;
+  }
+
   try {
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!);
-    const accessToken = generateAccessToken({ payload });
-    const refreshToken = generateRefreshToken({ payload });
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as object;
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
 
     ctx.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
