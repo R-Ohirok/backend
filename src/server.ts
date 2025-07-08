@@ -32,7 +32,9 @@ io.on("connection", (socket) => {
 
 app.context.io = io;
 
-app.use(cors());
+app.use(cors({
+  credentials: true,
+}));
 app.use(bodyParser());
 app.use(errorHandler);
 app.use(router.routes());

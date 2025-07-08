@@ -3,6 +3,7 @@ import { z } from 'zod';
 import User from '../../config/models/User.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { generateAccessToken, generateRefreshToken } from './utils/generateToken.js';
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -45,14 +46,21 @@ export const register = async (ctx: Context) => {
     password: hashedPassword,
   });
 
-  const token = jwt.sign({ email }, process.env.JWT_SECRET as string, { expiresIn: '1d' });
+  const accessToken = generateAccessToken({ email });
+  const refreshToken = generateRefreshToken({ email });
+
+  ctx.cookies.set('refreshToken', refreshToken, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 12 * 60 * 60 * 1000,
+  });
 
   ctx.status = 200;
-  ctx.body = { token };
+  ctx.body = { accessToken };
 };
 
 export const verifyEmail = async (ctx: Context) => {
-  console.log('check');
   const parsed = VerifyEmailSchema.safeParse(ctx.request.body);
 
   if (!parsed.success) {
@@ -105,8 +113,35 @@ export const login = async (ctx: Context) => {
     return;
   }
 
-  const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET as string, { expiresIn: '1d' });
+  const accessToken = generateAccessToken({ email });
+  const refreshToken = generateRefreshToken({ email });
+
+  ctx.cookies.set('refreshToken', refreshToken, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 12 * 60 * 60 * 1000,
+  });
 
   ctx.status = 200;
-  ctx.body = { token };
+  ctx.body = { accessToken };
+};
+
+export const refresh = async (ctx: Context) => {
+  const token = ctx.cookies.get('refreshToken');
+
+  if (!token) {
+    ctx.status = 401;
+    ctx.body = { message: 'No refresh token' };
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!);
+    const accessToken = generateAccessToken({ payload });
+    ctx.body = { accessToken };
+  } catch {
+    ctx.status = 403;
+    ctx.body = { message: 'Invalid refresh token' };
+  }
 };
