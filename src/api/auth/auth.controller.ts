@@ -193,9 +193,8 @@ export const refresh = async (ctx: Context) => {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as object;
-    const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
-
+    
     ctx.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       sameSite: 'strict',
@@ -203,9 +202,20 @@ export const refresh = async (ctx: Context) => {
       maxAge: 12 * 60 * 60 * 1000,
     });
 
-    const payloadBase64 = accessToken.split('.')[1];
-    const decodedPayload = JSON.parse(atob(payloadBase64));
-    const expiresAt = decodedPayload.exp;
+    const payloadBase64Refresh = refreshToken.split('.')[1];
+    const decodedPayloadRefresh = JSON.parse(atob(payloadBase64Refresh));
+    const expiresAtRefresh = decodedPayloadRefresh.exp;
+
+    await TokenBlacklist.query().insert({
+      token: refreshToken,
+      expires_at: expiresAtRefresh * 1000,
+    });
+
+    const accessToken = generateAccessToken(payload);
+
+    const payloadBase64Access = accessToken.split('.')[1];
+    const decodedPayloadAccess = JSON.parse(atob(payloadBase64Access));
+    const expiresAt = decodedPayloadAccess.exp;
 
     ctx.status = 200;
     ctx.body = { accessToken, expiresAt };
