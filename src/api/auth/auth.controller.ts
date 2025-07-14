@@ -2,7 +2,7 @@ import type { Context } from 'koa';
 import { z } from 'zod';
 import User from '../../config/models/User.js';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { generateAccessToken, generateRefreshToken } from './utils/generateToken.js';
 import TokenBlacklist from '../../config/models/TokenBlacklist.js';
 
@@ -178,7 +178,6 @@ export const refresh = async (ctx: Context) => {
   if (!token) {
     ctx.status = 401;
     ctx.body = { message: 'No refresh token' };
-
     return;
   }
 
@@ -192,8 +191,8 @@ export const refresh = async (ctx: Context) => {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as object;
-    const refreshToken = generateRefreshToken(payload);
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as JwtPayload;
+    const refreshToken = generateRefreshToken({ email: payload.email });
     
     ctx.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
@@ -201,17 +200,17 @@ export const refresh = async (ctx: Context) => {
       secure: process.env.NODE_ENV === 'production',
       maxAge: 12 * 60 * 60 * 1000,
     });
-
-    const payloadBase64Refresh = refreshToken.split('.')[1];
+    
+    const payloadBase64Refresh = token.split('.')[1];
     const decodedPayloadRefresh = JSON.parse(atob(payloadBase64Refresh));
     const expiresAtRefresh = decodedPayloadRefresh.exp;
-
+    
     await TokenBlacklist.query().insert({
-      token: refreshToken,
+      token: token,
       expires_at: expiresAtRefresh * 1000,
     });
 
-    const accessToken = generateAccessToken(payload);
+    const accessToken = generateAccessToken({ email: payload.email });
 
     const payloadBase64Access = accessToken.split('.')[1];
     const decodedPayloadAccess = JSON.parse(atob(payloadBase64Access));
