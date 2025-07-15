@@ -5,6 +5,7 @@ class User extends Model {
   id!: number;
   email!: string;
   password!: string;
+  workspaces?: Workspace[];
 
   static tableName = 'users';
 

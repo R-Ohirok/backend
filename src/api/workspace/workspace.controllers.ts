@@ -16,6 +16,51 @@ const RemoveUserFromWorkspaceSchema = z.object({
   userId: z.number().int().positive(),
 });
 
+export const getAllWorkspaces = async (ctx: Context) => {
+  try {
+    const workspaces = await Workspace.query().select('id', 'name');
+
+    ctx.status = 200;
+    ctx.body = { workspaces };
+  } catch (error) {
+    console.error(error);
+    ctx.status = 500;
+    ctx.body = { message: 'Failed to get workspaces' };
+  }
+};
+
+export const getUserWorkspaces = async (ctx: Context) => {
+  const userId = Number(ctx.params.userId);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid user id' };
+    return;
+  }
+
+  try {
+    const user = await User.query().findById(userId).withGraphFetched('workspaces');
+
+    if (!user) {
+      ctx.status = 404;
+      ctx.body = { message: 'User not found' };
+      return;
+    }
+
+    const workspaces = (user.workspaces ?? []).map(ws => ({
+      id: ws.id,
+      name: ws.name,
+    }));
+
+    ctx.status = 200;
+    ctx.body = { workspaces };
+  } catch (error) {
+    console.error(error);
+    ctx.status = 500;
+    ctx.body = { message: 'Failed to get user workspaces' };
+  }
+};
+
 export const createWorkspace = async (ctx: Context) => {
   const parsed = CreateWorkspaceSchema.safeParse(ctx.request.body);
 
