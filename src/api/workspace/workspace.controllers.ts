@@ -60,9 +60,8 @@ export const addUserToWorkspace = async (ctx: Context) => {
   }
 
   const { workspaceId, userId } = parsed.data;
-
-  // Перевірка існування workspace і користувача
   const workspace = await Workspace.query().findById(workspaceId);
+
   if (!workspace) {
     ctx.status = 404;
     ctx.body = { message: 'Workspace not found' };
@@ -77,7 +76,6 @@ export const addUserToWorkspace = async (ctx: Context) => {
   }
 
   try {
-    // Перевірка чи користувач вже у workspace
     const existing = await Workspace.query()
       .findById(workspaceId)
       .withGraphFetched('users')
@@ -89,7 +87,6 @@ export const addUserToWorkspace = async (ctx: Context) => {
       return;
     }
 
-    // Додаємо користувача
     await workspace.$relatedQuery('users').relate(userId);
 
     ctx.status = 200;
@@ -112,7 +109,6 @@ export const removeUserFromWorkspace = async (ctx: Context) => {
 
   const { workspaceId, userId } = parsed.data;
 
-  // Перевірка існування workspace і користувача
   const workspace = await Workspace.query().findById(workspaceId);
   if (!workspace) {
     ctx.status = 404;
@@ -128,7 +124,6 @@ export const removeUserFromWorkspace = async (ctx: Context) => {
   }
 
   try {
-    // Перевірка чи користувач у workspace
     const isRelated = await Workspace.query()
       .findById(workspaceId)
       .withGraphFetched('users')
@@ -140,7 +135,6 @@ export const removeUserFromWorkspace = async (ctx: Context) => {
       return;
     }
 
-    // Видаляємо користувача з many-to-many зв’язку
     await workspace.$relatedQuery('users').unrelate().where('user_id', userId);
 
     ctx.status = 200;
