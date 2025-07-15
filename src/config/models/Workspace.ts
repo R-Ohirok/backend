@@ -4,6 +4,11 @@ import ToDo from './ToDo.js';
 
 class Workspace extends Model {
   static tableName = 'workspace';
+  id!: number;
+  name!: string;
+
+  users?: User[];
+  todos?: ToDo[];
 
   static relationMappings = () => ({
     users: {
