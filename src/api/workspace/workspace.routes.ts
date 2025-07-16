@@ -5,9 +5,9 @@ import { addUserToWorkspace, createWorkspace, getAllWorkspaces, getUserWorkspace
 const router = new Router();
 
 router.get('/workspace/all', authMiddleware, getAllWorkspaces);
-router.get('/workspace/user/:userId', authMiddleware, getUserWorkspaces);
+router.get('/workspace/user', authMiddleware, getUserWorkspaces);
 router.post('/workspace/create', authMiddleware, createWorkspace);
-router.post('workspace/add-user', authMiddleware, addUserToWorkspace);
-router.post('workspace/remove-user', authMiddleware, removeUserFromWorkspace);
+router.post('/workspace/add-user', authMiddleware, addUserToWorkspace);
+router.post('/workspace/remove-user', authMiddleware, removeUserFromWorkspace);
 
 export default router;

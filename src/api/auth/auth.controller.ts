@@ -30,7 +30,6 @@ export const register = async (ctx: Context) => {
   }
 
   const { email, password } = parsed.data;
-
   const existingUser = await User.query().findOne({ email });
 
   if (existingUser) {
@@ -42,13 +41,14 @@ export const register = async (ctx: Context) => {
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-  await User.query().insert({
+  const newUser = await User.query().insert({
     email,
     password: hashedPassword,
   });
 
-  const accessToken = generateAccessToken({ email });
-  const refreshToken = generateRefreshToken({ email });
+  const payload = { id: newUser.id, email: newUser.email };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
 
   ctx.cookies.set('refreshToken', refreshToken, {
     httpOnly: true,
@@ -58,11 +58,11 @@ export const register = async (ctx: Context) => {
   });
 
   const payloadBase64 = accessToken.split('.')[1];
-    const decodedPayload = JSON.parse(atob(payloadBase64));
-    const expiresAt = decodedPayload.exp;
+  const decodedPayload = JSON.parse(atob(payloadBase64));
+  const expiresAt = decodedPayload.exp;
 
-    ctx.status = 200;
-    ctx.body = { accessToken, expiresAt };
+  ctx.status = 200;
+  ctx.body = { accessToken, expiresAt };
 };
 
 export const verifyEmail = async (ctx: Context) => {
@@ -118,8 +118,9 @@ export const login = async (ctx: Context) => {
     return;
   }
 
-  const accessToken = generateAccessToken({ email });
-  const refreshToken = generateRefreshToken({ email });
+  const payload = { id: user.id, email: user.email };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
 
   ctx.cookies.set('refreshToken', refreshToken, {
     httpOnly: true,
@@ -192,7 +193,7 @@ export const refresh = async (ctx: Context) => {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as JwtPayload;
-    const refreshToken = generateRefreshToken({ email: payload.email });
+    const refreshToken = generateRefreshToken({ id: payload.id, email: payload.email });
     
     ctx.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
@@ -210,7 +211,7 @@ export const refresh = async (ctx: Context) => {
       expires_at: expiresAtRefresh * 1000,
     });
 
-    const accessToken = generateAccessToken({ email: payload.email });
+    const accessToken = generateAccessToken({ id: payload.id, email: payload.email });
 
     const payloadBase64Access = accessToken.split('.')[1];
     const decodedPayloadAccess = JSON.parse(atob(payloadBase64Access));

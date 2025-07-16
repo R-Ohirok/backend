@@ -5,7 +5,7 @@ class ToDo extends Model {
   id!: string;
   title!: string;
   is_completed!: boolean;
-  workspaceId!: number;
+  workspace_id!: number;
 
   static get tableName() {
     return 'todos';

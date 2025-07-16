@@ -5,23 +5,20 @@ import User from '../../config/models/User.js';
 
 const CreateWorkspaceSchema = z.object({
   name: z.string().min(1),
-  userId: z.number().int().positive(),
 });
 const AddUserToWorkspaceSchema = z.object({
-  workspaceId: z.number().int().positive(),
-  userId: z.number().int().positive(),
+  workspace_id: z.number().int().positive(),
 });
 const RemoveUserFromWorkspaceSchema = z.object({
-  workspaceId: z.number().int().positive(),
-  userId: z.number().int().positive(),
+  workspace_id: z.number().int().positive(),
 });
 
 export const getAllWorkspaces = async (ctx: Context) => {
   try {
-    const workspaces = await Workspace.query().select('id', 'name');
+    const workspaces = await Workspace.query().select('id', 'name').orderBy('id');;
 
     ctx.status = 200;
-    ctx.body = { workspaces };
+    ctx.body = workspaces;
   } catch (error) {
     console.error(error);
     ctx.status = 500;
@@ -30,7 +27,7 @@ export const getAllWorkspaces = async (ctx: Context) => {
 };
 
 export const getUserWorkspaces = async (ctx: Context) => {
-  const userId = Number(ctx.params.userId);
+  const userId = ctx.state.user.id;
 
   if (!Number.isInteger(userId) || userId <= 0) {
     ctx.status = 400;
@@ -53,7 +50,7 @@ export const getUserWorkspaces = async (ctx: Context) => {
     }));
 
     ctx.status = 200;
-    ctx.body = { workspaces };
+    ctx.body = workspaces;
   } catch (error) {
     console.error(error);
     ctx.status = 500;
@@ -62,7 +59,14 @@ export const getUserWorkspaces = async (ctx: Context) => {
 };
 
 export const createWorkspace = async (ctx: Context) => {
+  const userId = ctx.state.user.id;
   const parsed = CreateWorkspaceSchema.safeParse(ctx.request.body);
+  
+  if (!Number.isInteger(userId) || userId <= 0) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid user id' };
+    return;
+  }
 
   if (!parsed.success) {
     ctx.status = 400;
@@ -70,12 +74,19 @@ export const createWorkspace = async (ctx: Context) => {
     return;
   }
 
-  const { name, userId } = parsed.data;
+  const { name } = parsed.data;
 
   const user = await User.query().findById(userId);
   if (!user) {
     ctx.status = 404;
     ctx.body = { message: 'User not found' };
+    return;
+  }
+
+  const existingWorkspace = await Workspace.query().findOne({ name });
+  if (existingWorkspace) {
+    ctx.status = 409;
+    ctx.body = { message: 'Workspace with this name already exists' };
     return;
   }
 
@@ -87,7 +98,6 @@ export const createWorkspace = async (ctx: Context) => {
     await workspace.$relatedQuery('users').relate(userId);
 
     ctx.status = 201;
-    ctx.body = { workspace };
   } catch (error) {
     console.error(error);
     ctx.status = 500;
@@ -96,7 +106,14 @@ export const createWorkspace = async (ctx: Context) => {
 };
 
 export const addUserToWorkspace = async (ctx: Context) => {
+  const userId = Number(ctx.state.user.id);
   const parsed = AddUserToWorkspaceSchema.safeParse(ctx.request.body);
+  
+  if (!Number.isInteger(userId) || userId <= 0) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid user id' };
+    return;
+  }
 
   if (!parsed.success) {
     ctx.status = 400;
@@ -104,8 +121,8 @@ export const addUserToWorkspace = async (ctx: Context) => {
     return;
   }
 
-  const { workspaceId, userId } = parsed.data;
-  const workspace = await Workspace.query().findById(workspaceId);
+  const { workspace_id } = parsed.data;
+  const workspace = await Workspace.query().findById(workspace_id);
 
   if (!workspace) {
     ctx.status = 404;
@@ -122,7 +139,7 @@ export const addUserToWorkspace = async (ctx: Context) => {
 
   try {
     const existing = await Workspace.query()
-      .findById(workspaceId)
+      .findById(workspace_id)
       .withGraphFetched('users')
       .modifyGraph('users', builder => builder.where('users.id', userId));
 
@@ -144,7 +161,14 @@ export const addUserToWorkspace = async (ctx: Context) => {
 };
 
 export const removeUserFromWorkspace = async (ctx: Context) => {
+  const userId = ctx.state.user.id;
   const parsed = RemoveUserFromWorkspaceSchema.safeParse(ctx.request.body);
+  
+  if (!Number.isInteger(userId) || userId <= 0) {
+    ctx.status = 400;
+    ctx.body = { message: 'Invalid user id' };
+    return;
+  }
 
   if (!parsed.success) {
     ctx.status = 400;
@@ -152,9 +176,9 @@ export const removeUserFromWorkspace = async (ctx: Context) => {
     return;
   }
 
-  const { workspaceId, userId } = parsed.data;
+  const { workspace_id } = parsed.data;
 
-  const workspace = await Workspace.query().findById(workspaceId);
+  const workspace = await Workspace.query().findById(workspace_id);
   if (!workspace) {
     ctx.status = 404;
     ctx.body = { message: 'Workspace not found' };
@@ -170,7 +194,7 @@ export const removeUserFromWorkspace = async (ctx: Context) => {
 
   try {
     const isRelated = await Workspace.query()
-      .findById(workspaceId)
+      .findById(workspace_id)
       .withGraphFetched('users')
       .modifyGraph('users', builder => builder.where('users.id', userId));
 
