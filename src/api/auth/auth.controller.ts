@@ -3,7 +3,7 @@ import { z } from 'zod';
 import User from '../../config/models/User.js';
 import bcrypt from 'bcrypt';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { generateAccessToken, generateRefreshToken } from './utils/generateToken.js';
+import { generateAccessToken, generateRefreshToken } from '../../utils/generateToken.js';
 import TokenBlacklist from '../../config/models/TokenBlacklist.js';
 
 const RegisterSchema = z.object({
@@ -41,28 +41,12 @@ export const register = async (ctx: Context) => {
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-  const newUser = await User.query().insert({
+  await User.query().insert({
     email,
     password: hashedPassword,
   });
 
-  const payload = { id: newUser.id, email: newUser.email };
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
-
-  ctx.cookies.set('refreshToken', refreshToken, {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 12 * 60 * 60 * 1000,
-  });
-
-  const payloadBase64 = accessToken.split('.')[1];
-  const decodedPayload = JSON.parse(atob(payloadBase64));
-  const expiresAt = decodedPayload.exp;
-
   ctx.status = 200;
-  ctx.body = { accessToken, expiresAt };
 };
 
 export const verifyEmail = async (ctx: Context) => {
@@ -117,24 +101,25 @@ export const login = async (ctx: Context) => {
     ctx.body = { message: 'Invalid password' };
     return;
   }
-
-  const payload = { id: user.id, email: user.email };
+  
+  const payload = { id: user.id, email: user.email, workspace_id: user.workspace_id };
+  const workspace_id = user.workspace_id;
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
-
+  
   ctx.cookies.set('refreshToken', refreshToken, {
     httpOnly: true,
     sameSite: 'strict',
     secure: process.env.NODE_ENV === 'production',
     maxAge: 12 * 60 * 60 * 1000,
   });
-
+  
   const payloadBase64 = accessToken.split('.')[1];
-    const decodedPayload = JSON.parse(atob(payloadBase64));
-    const expiresAt = decodedPayload.exp;
-
-    ctx.status = 200;
-    ctx.body = { accessToken, expiresAt };
+  const decodedPayload = JSON.parse(atob(payloadBase64));
+  const expiresAt = decodedPayload.exp;
+  
+  ctx.status = 200;
+  ctx.body = { accessToken, expiresAt, workspace_id };
 };
 
 export const logout = async (ctx: Context) => {
@@ -193,7 +178,7 @@ export const refresh = async (ctx: Context) => {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as JwtPayload;
-    const refreshToken = generateRefreshToken({ id: payload.id, email: payload.email });
+    const refreshToken = generateRefreshToken({ id: payload.id, email: payload.email, workspace_id: payload.workspace_id });
     
     ctx.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
@@ -211,7 +196,7 @@ export const refresh = async (ctx: Context) => {
       expires_at: expiresAtRefresh * 1000,
     });
 
-    const accessToken = generateAccessToken({ id: payload.id, email: payload.email });
+    const accessToken = generateAccessToken({ id: payload.id, email: payload.email, workspace_id: payload.workspace_id });
 
     const payloadBase64Access = accessToken.split('.')[1];
     const decodedPayloadAccess = JSON.parse(atob(payloadBase64Access));

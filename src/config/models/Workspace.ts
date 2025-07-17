@@ -12,15 +12,11 @@ class Workspace extends Model {
 
   static relationMappings = () => ({
     users: {
-      relation: Model.ManyToManyRelation,
+      relation: Model.HasManyRelation,
       modelClass: User,
       join: {
         from: 'workspace.id',
-        through: {
-          from: 'workspace_users.workspace_id',
-          to: 'workspace_users.user_id',
-        },
-        to: 'users.id',
+        to: 'users.workspace_id',
       },
     },
     todos: {

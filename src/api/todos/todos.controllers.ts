@@ -40,7 +40,6 @@ const CreateToDoSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
   is_completed: z.boolean(),
-  workspace_id: z.number().int().positive(),
 });
 
 const UpdateToDoSchema = z.object({
@@ -49,14 +48,9 @@ const UpdateToDoSchema = z.object({
 });
 
 export const getTodos = async (ctx: Context) => {
-  const userId = ctx.state.user.id;
-  const parsed = GetTodosQuerySchema.safeParse(ctx.query);
+  const { workspace_id } = ctx.state.user;
 
-  if (!Number.isInteger(userId) || userId <= 0) {
-    ctx.status = 400;
-    ctx.body = { message: 'Invalid user id' };
-    return;
-  }
+  const parsed = GetTodosQuerySchema.safeParse(ctx.query);
 
   if (!parsed.success) {
     ctx.status = 400;
@@ -68,9 +62,7 @@ export const getTodos = async (ctx: Context) => {
   const { status, title, limit, offset } = parsed.data;
 
   let baseQuery = ToDo.query()
-    .join('workspace', 'todos.workspace_id', 'workspace.id')
-    .join('workspace_users', 'workspace.id', 'workspace_users.workspace_id')
-    .where('workspace_users.user_id', userId);
+    .where('workspace_id', workspace_id);
 
   if (status) {
     baseQuery = baseQuery.where('is_completed', status === ToDoStatus.completed);
@@ -96,6 +88,13 @@ export const getTodos = async (ctx: Context) => {
 };
 
 export const createTodo = async (ctx: Context) => {
+  const { workspace_id } = ctx.state.user;
+
+  if (!workspace_id) {
+    ctx.status = 400;
+    ctx.body = { message: 'Choose workspace' };
+    return;
+  }
   const parsed = CreateToDoSchema.safeParse(ctx.request.body);
 
   if (!parsed.success) {
@@ -105,7 +104,7 @@ export const createTodo = async (ctx: Context) => {
     return;
   }
 
-  const todo = await ToDo.query().insert(parsed.data);
+  const todo = await ToDo.query().insert({ ...parsed.data, workspace_id });
 
   ctx.io.emit('todo-created', todo);
 

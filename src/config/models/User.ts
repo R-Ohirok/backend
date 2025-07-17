@@ -5,20 +5,16 @@ class User extends Model {
   id!: number;
   email!: string;
   password!: string;
-  workspaces?: Workspace[];
+  workspace_id!: number | null;  // нове поле
 
   static tableName = 'users';
 
   static relationMappings = () => ({
-    workspaces: {
-      relation: Model.ManyToManyRelation,
+    workspace: {
+      relation: Model.BelongsToOneRelation,
       modelClass: Workspace,
       join: {
-        from: 'users.id',
-        through: {
-          from: 'workspace_users.user_id',
-          to: 'workspace_users.workspace_id',
-        },
+        from: 'users.workspace_id',
         to: 'workspace.id',
       },
     },
