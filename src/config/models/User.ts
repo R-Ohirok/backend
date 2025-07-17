@@ -15,7 +15,7 @@ class User extends Model {
       modelClass: Workspace,
       join: {
         from: 'users.workspace_id',
-        to: 'workspace.id',
+        to: 'workspaces.id',
       },
     },
   });

@@ -5,7 +5,7 @@
 export async function up(knex) {
   return knex.schema.alterTable('todos', (table) => {
     table.integer('workspace_id').unsigned().notNullable()
-      .references('id').inTable('workspace').onDelete('CASCADE');
+      .references('id').inTable('workspaces').onDelete('CASCADE');
   });
 }
 

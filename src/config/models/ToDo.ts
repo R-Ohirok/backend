@@ -21,7 +21,7 @@ class ToDo extends Model {
       modelClass: Workspace,
       join: {
         from: 'todos.workspace_id',
-        to: 'workspace.id',
+        to: 'workspaces.id',
       },
     },
   });

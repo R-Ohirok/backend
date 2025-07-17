@@ -3,7 +3,7 @@ import User from './User.js';
 import ToDo from './ToDo.js';
 
 class Workspace extends Model {
-  static tableName = 'workspace';
+  static tableName = 'workspaces';
   id!: number;
   name!: string;
 
@@ -15,7 +15,7 @@ class Workspace extends Model {
       relation: Model.HasManyRelation,
       modelClass: User,
       join: {
-        from: 'workspace.id',
+        from: 'workspaces.id',
         to: 'users.workspace_id',
       },
     },
@@ -23,7 +23,7 @@ class Workspace extends Model {
       relation: Model.HasManyRelation,
       modelClass: ToDo,
       join: {
-        from: 'workspace.id',
+        from: 'workspaces.id',
         to: 'todos.workspace_id',
       },
     },

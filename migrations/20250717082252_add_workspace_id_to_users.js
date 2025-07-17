@@ -9,7 +9,7 @@ export async function up(knex) {
       .unsigned()
       .nullable()
       .references('id')
-      .inTable('workspace')
+      .inTable('workspaces')
       .onDelete('SET NULL');
   });
 }
