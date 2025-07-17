@@ -48,6 +48,8 @@ const UpdateToDoSchema = z.object({
 });
 
 export const getTodos = async (ctx: Context) => {
+  const { workspace_id } = ctx.state.user;
+
   const parsed = GetTodosQuerySchema.safeParse(ctx.query);
 
   if (!parsed.success) {
@@ -59,11 +61,11 @@ export const getTodos = async (ctx: Context) => {
 
   const { status, title, limit, offset } = parsed.data;
 
-
-  let baseQuery = ToDo.query();
+  let baseQuery = ToDo.query()
+    .where('workspace_id', workspace_id);
 
   if (status) {
-    baseQuery = ToDo.query().where('is_completed', status === ToDoStatus.completed);
+    baseQuery = baseQuery.where('is_completed', status === ToDoStatus.completed);
   }
 
   if (title) {
@@ -76,7 +78,7 @@ export const getTodos = async (ctx: Context) => {
   const todos = await baseQuery
     .limit(limit)
     .offset(offset)
-    .orderBy('id');;
+    .orderBy('id');
 
   ctx.status = 200;
   ctx.body = {
@@ -86,8 +88,14 @@ export const getTodos = async (ctx: Context) => {
 };
 
 export const createTodo = async (ctx: Context) => {
-  const parsed = CreateToDoSchema.safeParse(ctx.request.body);
+  const { workspace_id } = ctx.state.user;
 
+  if (!workspace_id) {
+    ctx.status = 400;
+    ctx.body = { message: 'Choose workspace' };
+    return;
+  }
+  const parsed = CreateToDoSchema.safeParse(ctx.request.body);
 
   if (!parsed.success) {
     ctx.status = 400;
@@ -96,7 +104,7 @@ export const createTodo = async (ctx: Context) => {
     return;
   }
 
-  const todo = await ToDo.query().insert(parsed.data);
+  const todo = await ToDo.query().insert({ ...parsed.data, workspace_id });
 
   ctx.io.emit('todo-created', todo);
 
