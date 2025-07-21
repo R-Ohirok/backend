@@ -5,7 +5,7 @@ class User extends Model {
   id!: number;
   email!: string;
   password!: string;
-  workspace_id!: number | null;  // нове поле
+  workspace_id!: number | null;
 
   static tableName = 'users';
 
