@@ -44,8 +44,8 @@ io.on('connection', (socket) => {
 app.context.io = io;
 
 app.use(cors({
-  // origin: 'http://localhost:5173',
-  origin: '*',
+  origin: 'http://localhost:5173',
+  // origin: '*',
   credentials: true,
 }));
 app.use(bodyParser());
@@ -54,8 +54,8 @@ app.use(errorHandler);
 apolloServer.applyMiddleware({
   app,
   cors: {
-    // origin: 'http://localhost:5173',
-    origin: '*',
+    origin: 'http://localhost:5173',
+    // origin: '*',
     credentials: true,
   },
 });
